@@ -1,0 +1,7 @@
+{
+    "cmake.sourceDirectory": "${workspaceFolder}/.",
+    "files.associations": {
+        "ccomplex": "c",
+        "complex": "cpp"
+    }
+}
