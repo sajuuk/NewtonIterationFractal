@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2021-10-25 23:34:20
- * @LastEditTime: 2021-10-28 21:27:54
+ * @LastEditTime: 2021-10-29 15:30:46
  * @LastEditors: Please set LastEditors
  * @Description: In User Settings Edit
  * @FilePath: \NewtonIterationFractal\main.cpp
@@ -97,6 +97,7 @@ void draw(int n,complexNum *root)
 {
     BeginBatchDraw();
     clock_t start=clock();
+    #pragma omp parallel for schedule(dynamic, 1)
     for(int i=-WIDTH/2;i<WIDTH/2;i++)
     {
         for(int j=-HEIGHT/2;j<HEIGHT/2;j++)
