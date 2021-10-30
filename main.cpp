@@ -1,8 +1,8 @@
 /*
  * @Author: your name
  * @Date: 2021-10-25 23:34:20
- * @LastEditTime: 2021-10-29 15:30:46
- * @LastEditors: Please set LastEditors
+ * @LastEditTime: 2021-10-30 14:55:56
+ * @LastEditors: Corvo Attano(fkxzz001@qq.com)
  * @Description: In User Settings Edit
  * @FilePath: \NewtonIterationFractal\main.cpp
  */
@@ -12,9 +12,10 @@
 #include<graphics.h>
 #include<ctime>
 #include"lib\complex.h"
-#define WIDTH 640
-#define HEIGHT 480
+#define WIDTH 1024
+#define HEIGHT 768
 #define MAX_ITER 20
+DWORD buffer[WIDTH*HEIGHT];
 int *colorList=nullptr;
 //f(x)=(x+r0)(x+r1)...(x+rn-1)
 complexNum f(complexNum *root,complexNum x,int n)
@@ -67,12 +68,12 @@ complexNum newtonIter(complexNum x,complexNum *root,int n)
 void init(int n,complexNum **root)
 {
     initgraph(WIDTH,HEIGHT);
-    setorigin(WIDTH/2,HEIGHT/2);
+    //setorigin(WIDTH/2,HEIGHT/2);
     (*root)=new complexNum[n];
-    (*root)[0]=complexNum(-200,200);
-    (*root)[1]=complexNum(400,400);
-    (*root)[2]=complexNum(280,-240);//set first 3 root to debug
-    (*root)[2]=complexNum(-340,-360);
+    (*root)[0]=complexNum(100,100);
+    (*root)[1]=complexNum(150,150);
+    (*root)[2]=complexNum(200,200);//set first 3 root to debug
+    (*root)[3]=complexNum(250,250);
     // colorList=new int[n];
     // for(int i=0;i<n;i++)//set up colors
     // {
@@ -97,12 +98,13 @@ void draw(int n,complexNum *root)
 {
     BeginBatchDraw();
     clock_t start=clock();
-    #pragma omp parallel for schedule(dynamic, 1)
-    for(int i=-WIDTH/2;i<WIDTH/2;i++)
+    DWORD *pMem=GetImageBuffer();
+    #pragma omp parallel for schedule(dynamic)
+    for(int i=0;i<HEIGHT;i++)
     {
-        for(int j=-HEIGHT/2;j<HEIGHT/2;j++)
+        for(int j=0;j<WIDTH;j++)
         {
-            complexNum sample((double)i,(double)j);
+            complexNum sample((double)j,(double)i);
             complexNum pre(0,0);
             int k;
             for(k=0;k<MAX_ITER;k++)
@@ -125,16 +127,18 @@ void draw(int n,complexNum *root)
             int cluster=getClosest(n,sample,root);
             float normal=(float)k/(float)MAX_ITER;
             int color=HSLtoRGB(360/(float)n*cluster,0.4+0.3*normal,0.4+0.3*normal);
-            putpixel(i,j,color);
+            buffer[i*WIDTH+j]=BGR(color);
+            //putpixel(i,j,color);
         }
     }
+    memcpy(pMem,buffer,sizeof(DWORD)*HEIGHT*WIDTH);
     for(int i=0;i<n;i++)
     {
         circle(root[i].real,root[i].image,5);
     }
+    FlushBatchDraw();
     clock_t dur=clock()-start;
     printf("%lf",(double)dur/CLOCKS_PER_SEC);
-    FlushBatchDraw();
 }
 int main(int argc,char *argv[])
 {
@@ -142,7 +146,13 @@ int main(int argc,char *argv[])
     int n=4;//default
     complexNum *root=nullptr;
     init(n,&root);
-    draw(n,root);
+    for(double d=0;d<100;d+=1)
+    {
+        root[0].real+=d;
+        draw(n,root);
+        //Sleep(60);
+    }
+    //draw(n,root);
     getchar();
     EndBatchDraw();
     closegraph();
