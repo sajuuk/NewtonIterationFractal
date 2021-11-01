@@ -9,7 +9,6 @@ link_libraries("EasyXa")
 link_libraries("EasyXw")
 add_compile_options("/openmp")
 add_compile_options("/O2")
-add_executable(NewtonIterationFractal main.cpp)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
