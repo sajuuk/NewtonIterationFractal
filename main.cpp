@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2021-10-25 23:34:20
- * @LastEditTime: 2021-10-29 15:30:46
+ * @LastEditTime: 2021-10-30 19:19:19
  * @LastEditors: Please set LastEditors
  * @Description: In User Settings Edit
  * @FilePath: \NewtonIterationFractal\main.cpp
@@ -12,10 +12,14 @@
 #include<graphics.h>
 #include<ctime>
 #include"lib\complex.h"
-#define WIDTH 640
-#define HEIGHT 480
+#include<windows.h>
+#define WIDTH 800
+#define HEIGHT 600
 #define MAX_ITER 20
+#define MAXN 10
 int *colorList=nullptr;
+DWORD buffer[WIDTH*HEIGHT];
+DWORD *pMem=nullptr;
 //f(x)=(x+r0)(x+r1)...(x+rn-1)
 complexNum f(complexNum *root,complexNum x,int n)
 {
@@ -67,12 +71,17 @@ complexNum newtonIter(complexNum x,complexNum *root,int n)
 void init(int n,complexNum **root)
 {
     initgraph(WIDTH,HEIGHT);
-    setorigin(WIDTH/2,HEIGHT/2);
-    (*root)=new complexNum[n];
-    (*root)[0]=complexNum(-200,200);
-    (*root)[1]=complexNum(400,400);
-    (*root)[2]=complexNum(280,-240);//set first 3 root to debug
-    (*root)[2]=complexNum(-340,-360);
+    pMem=GetImageBuffer();
+    //setorigin(WIDTH/2,HEIGHT/2);
+    (*root)=new complexNum[MAXN];
+    (*root)[0]=complexNum(100,100);
+    (*root)[1]=complexNum(200,200);
+    (*root)[2]=complexNum(300,120);//set first 3 root to debug
+    (*root)[3]=complexNum(170,180);
+    (*root)[4]=complexNum(100,100);
+    (*root)[5]=complexNum(100,100);
+    (*root)[6]=complexNum(100,100);
+    (*root)[7]=complexNum(100,100);
     // colorList=new int[n];
     // for(int i=0;i<n;i++)//set up colors
     // {
@@ -93,16 +102,24 @@ int getClosest(int n,complexNum sample,complexNum *root)
     }
     return index;
 }
+void putCicle(int n,complexNum *root)
+{
+    //cleardevice();
+    for(int i=0;i<n;i++)
+    {
+        circle(root[i].real,root[i].image,5);
+    }
+    FlushBatchDraw();
+}
 void draw(int n,complexNum *root)
 {
-    BeginBatchDraw();
     clock_t start=clock();
-    #pragma omp parallel for schedule(dynamic, 1)
-    for(int i=-WIDTH/2;i<WIDTH/2;i++)
+    #pragma omp parallel for schedule(dynamic)
+    for(int i=0;i<HEIGHT;i++)
     {
-        for(int j=-HEIGHT/2;j<HEIGHT/2;j++)
+        for(int j=0;j<WIDTH;j++)
         {
-            complexNum sample((double)i,(double)j);
+            complexNum sample((double)j,(double)i);
             complexNum pre(0,0);
             int k;
             for(k=0;k<MAX_ITER;k++)
@@ -125,25 +142,95 @@ void draw(int n,complexNum *root)
             int cluster=getClosest(n,sample,root);
             float normal=(float)k/(float)MAX_ITER;
             int color=HSLtoRGB(360/(float)n*cluster,0.4+0.3*normal,0.4+0.3*normal);
-            putpixel(i,j,color);
+            buffer[i*WIDTH+j]=BGR(color);
+            //putpixel(i,j,color);
         }
     }
-    for(int i=0;i<n;i++)
-    {
-        circle(root[i].real,root[i].image,5);
-    }
+    memcpy(pMem,buffer,sizeof(DWORD)*HEIGHT*WIDTH);
     clock_t dur=clock()-start;
     printf("%lf",(double)dur/CLOCKS_PER_SEC);
     FlushBatchDraw();
 }
+// int getSelectedroot(complexNum *root,int n,short x,short y)
+// {
+//     complexNum mouse(x,y);
+//     complexNum vec;
+//     double min=999999999;
+//     int index=-1;
+//     for(int i=0;i<n;i++)
+//     {
+//         vec=mouse-root[i];
+//         if(vec.real*vec.real + vec.image*vec.image < min)
+//         {
+//             min=vec.real*vec.real + vec.image*vec.image;
+//             index=i;
+//         }
+//     }
+//     return index;
+// }
+void setSelectedroot(complexNum* root,int index,short x,short y)
+{
+    if(index<0) return;
+    root[index].real=(double)x;
+    root[index].image=(double)y;
+    return;
+}
+void messageLoop(complexNum *root,int n)
+{
+    ExMessage m;
+    bool isDrag=false;
+    draw(n,root);
+    putCicle(n,root);
+    int selectedIndex=-1;
+    short mx,my;
+    while(1)
+    {
+        m=getmessage(EM_MOUSE | EM_KEY);
+        if(isDrag && m.message==WM_MOUSEMOVE)
+        {
+            //cleardevice();
+            mx=m.x;my=m.y;
+            getClosest(n,complexNum(mx,my),root);
+            setSelectedroot(root,selectedIndex,mx,my);
+            draw(n,root);
+            putCicle(n,root);
+            flushmessage();
+        }
+        if((!isDrag) && m.message==WM_RBUTTONUP && n<10)
+        {
+            root[n].real=m.x;
+            root[n].image=m.y;
+            n++;
+            draw(n,root);
+            putCicle(n,root);
+        }
+        if(m.message==WM_LBUTTONUP && isDrag)
+        {
+            isDrag=false;
+            draw(n,root);
+            putCicle(n,root);
+        }
+        else if(m.message==WM_LBUTTONDOWN && isDrag==false)
+        {
+            printf("get mouse down");
+            selectedIndex=getClosest(n,complexNum(m.x,m.y),root); //(root,n,m.x-WIDTH/2,m.y-HEIGHT/2);
+            isDrag=true;
+        }
+        else if(m.message==WM_KEYDOWN)
+        {
+            if(m.vkcode==VK_ESCAPE) return;
+        }
+        //flushmessage();
+    }
+}
 int main(int argc,char *argv[])
 {
     //int n=atoi(argv[argc-1]);
-    int n=4;//default
+    int n=2;//default
     complexNum *root=nullptr;
     init(n,&root);
-    draw(n,root);
-    getchar();
+    BeginBatchDraw();
+    messageLoop(root,n);
     EndBatchDraw();
     closegraph();
     return 0;
