@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2021-10-25 23:34:20
- * @LastEditTime: 2021-10-30 19:19:19
+ * @LastEditTime: 2021-11-01 18:32:13
  * @LastEditors: Please set LastEditors
  * @Description: In User Settings Edit
  * @FilePath: \NewtonIterationFractal\main.cpp
@@ -149,7 +149,6 @@ void draw(int n,complexNum *root)
     memcpy(pMem,buffer,sizeof(DWORD)*HEIGHT*WIDTH);
     clock_t dur=clock()-start;
     printf("%lf",(double)dur/CLOCKS_PER_SEC);
-    FlushBatchDraw();
 }
 // int getSelectedroot(complexNum *root,int n,short x,short y)
 // {
